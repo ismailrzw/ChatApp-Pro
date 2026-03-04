@@ -1,131 +1,207 @@
-import { useNavigate } from 'react-router-dom'
+import React from 'react'
+import { useNavigate, useLocation, Link } from 'react-router-dom'
 import { useAuth } from '../../shared/hooks/useAuth'
+import { useSocket } from '../../shared/hooks/useSocket'
+import Avatar from '../../shared/components/Avatar'
+import ContactList from '../contacts/ContactList' // We will refactor this to be a "List Only" component
 
-export default function ChatLayout() {
+interface ChatLayoutProps {
+  children?: React.ReactNode
+}
+
+export default function ChatLayout({ children }: ChatLayoutProps) {
   const { user, signOut } = useAuth()
   const navigate = useNavigate()
+  const location = useLocation()
+  
+  useSocket()
 
   const handleLogout = async () => {
     await signOut()
     navigate('/')
   }
 
-  const userInitial = user?.email?.[0].toUpperCase() || 'U'
   const userName = user?.displayName || user?.email?.split('@')[0] || 'User'
+  
+  const isContactsPath = location.pathname === '/contacts'
+  const isChatsPath = location.pathname.startsWith('/chat')
+  const isSettingsPath = location.pathname.includes('settings')
+
+  // Mobile visibility logic
+  // On mobile, if we have children (like Settings or a Message Thread), we hide the sidebar
+  const showSidebarOnMobile = !children
+
+  const navItems = [
+    { 
+      name: 'Chats', 
+      icon: (
+        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
+        </svg>
+      ), 
+      path: '/chat' 
+    },
+    { 
+      name: 'Contacts', 
+      icon: (
+        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+        </svg>
+      ), 
+      path: '/contacts' 
+    },
+  ]
 
   return (
     <div className="flex h-screen bg-slate-50 overflow-hidden font-sans">
       {/* Sidebar */}
-      <aside className="w-full md:w-80 bg-white border-r border-slate-200 flex flex-col shadow-sm z-10">
+      <aside className={`
+        ${showSidebarOnMobile ? 'flex' : 'hidden'} 
+        md:flex w-full md:w-80 lg:w-96 bg-white border-r border-slate-200 flex-col shadow-sm z-20 transition-all duration-300 shrink-0
+      `}>
         {/* Header */}
-        <div className="h-16 flex items-center justify-between px-6 border-b border-slate-100 bg-white">
-          <div className="flex items-center gap-2">
-            <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center text-white shadow-md shadow-blue-100">
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <div className="h-20 flex items-center justify-between px-6 border-b border-slate-100 bg-white shrink-0">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 bg-blue-600 rounded-xl flex items-center justify-center text-white shadow-lg shadow-blue-100">
+              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
               </svg>
             </div>
-            <h1 className="text-lg font-bold text-slate-900 tracking-tight">ChatNow</h1>
+            <h1 className="text-xl font-black text-slate-900 tracking-tight">ChatNow</h1>
           </div>
-          <button className="p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-xl transition-all duration-200">
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4" />
+          <Link to="/settings/profile" className={`p-2.5 rounded-xl transition-all ${isSettingsPath ? 'text-blue-600 bg-blue-50' : 'text-slate-400 hover:bg-slate-50'}`}>
+            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
             </svg>
-          </button>
+          </Link>
         </div>
 
-        {/* User Card */}
-        <div className="p-4 mx-4 mt-4 bg-slate-50 rounded-2xl border border-slate-100 flex items-center gap-3">
-          <div className="relative">
-            <div className="w-11 h-11 rounded-xl bg-blue-600 flex items-center justify-center text-white font-bold shadow-md shadow-blue-100">
-              {userInitial}
+        {/* Dynamic Sidebar Content */}
+        <div className="flex-1 flex flex-col min-h-0">
+          {isContactsPath ? (
+            <div className="flex-1 flex flex-col min-h-0 animate-in slide-in-from-left-4 duration-300">
+              <ContactList isSidebarMode={true} />
             </div>
-            <div className="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 bg-emerald-500 border-2 border-white rounded-full"></div>
-          </div>
-          <div className="flex-1 min-w-0">
-            <p className="text-sm font-bold text-slate-900 truncate">{userName}</p>
-            <p className="text-[11px] font-bold text-emerald-600 uppercase tracking-wider">Active Now</p>
-          </div>
-        </div>
+          ) : (
+            <div className="flex-1 flex flex-col min-h-0 animate-in slide-in-from-right-4 duration-300">
+              {/* User Card */}
+              <div className="p-4 mx-4 mt-6 bg-slate-50 rounded-2xl border border-slate-100 flex items-center gap-3 shrink-0">
+                <Avatar src={user?.photoURL} name={userName} isOnline={true} size="md" />
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-bold text-slate-900 truncate">{userName}</p>
+                  <p className="text-[10px] font-black text-emerald-600 uppercase tracking-widest">Active Now</p>
+                </div>
+              </div>
 
-        {/* Search Placeholder */}
-        <div className="px-6 mt-6">
-          <div className="relative">
-            <input 
-              type="text" 
-              placeholder="Search conversations..." 
-              className="w-full pl-10 pr-4 py-2.5 bg-slate-100 border-transparent rounded-xl text-sm placeholder-slate-400 focus:bg-white focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all duration-200"
-            />
-            <svg className="w-4 h-4 text-slate-400 absolute left-3.5 top-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-            </svg>
-          </div>
-        </div>
+              {/* Chat Area Search & List Placeholder */}
+              <div className="px-4 mt-6 shrink-0">
+                <div className="relative">
+                  <input 
+                    type="text" 
+                    placeholder="Search conversations..." 
+                    className="w-full pl-11 pr-4 py-3 bg-slate-50 border border-slate-100 rounded-2xl text-sm font-medium placeholder-slate-400 focus:bg-white focus:ring-4 focus:ring-blue-500/5 focus:border-blue-500/50 transition-all outline-none"
+                  />
+                  <svg className="w-5 h-5 text-slate-400 absolute left-4 top-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                  </svg>
+                </div>
+              </div>
 
-        {/* Conversations */}
-        <div className="flex-1 overflow-y-auto px-2 mt-4 space-y-1">
-          <div className="p-10 text-center">
-            <div className="w-12 h-12 bg-slate-100 rounded-full flex items-center justify-center text-slate-300 mx-auto mb-3">
-              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 8h2a2 2 0 012 2v6a2 2 0 01-2 2h-2v4l-4-4H9a1.994 1.994 0 01-1.414-.586m0 0L11 14h4a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2v4l.586-.586z" />
-              </svg>
+              <div className="flex-1 overflow-y-auto px-2 mt-4 space-y-1 custom-scrollbar">
+                <div className="p-10 text-center animate-in fade-in duration-500 mt-10">
+                  <div className="w-16 h-16 bg-slate-50 rounded-3xl flex items-center justify-center text-slate-300 mx-auto mb-4 border border-slate-100">
+                    <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 8h2a2 2 0 012 2v6a2 2 0 01-2 2h-2v4l-4-4H9a1.994 1.994 0 01-1.414-.586m0 0L11 14h4a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2v4l.586-.586z" />
+                    </svg>
+                  </div>
+                  <p className="text-sm font-bold text-slate-400">No active chats</p>
+                  <p className="text-xs text-slate-400/70 mt-1.5 leading-relaxed">Start a conversation from your contacts list.</p>
+                  <Link 
+                    to="/contacts"
+                    className="mt-6 inline-block px-6 py-2.5 bg-blue-600 text-white rounded-xl text-xs font-black hover:bg-blue-700 transition-all shadow-lg shadow-blue-100"
+                  >
+                    Find Contacts
+                  </Link>
+                </div>
+              </div>
             </div>
-            <p className="text-sm font-bold text-slate-400">No messages yet</p>
-            <p className="text-xs text-slate-400 mt-1">Your chats will appear here</p>
-          </div>
+          )}
         </div>
 
-        {/* Logout Footer */}
-        <div className="p-4 border-t border-slate-100 bg-slate-50/50">
+        {/* Footer Navigation */}
+        <nav className="p-4 border-t border-slate-100 bg-slate-50/30 flex gap-2 shrink-0">
+          {navItems.map((item) => {
+            const isActive = location.pathname.startsWith(item.path)
+            return (
+              <Link
+                key={item.name}
+                to={item.path}
+                className={`
+                  flex-1 flex items-center justify-center gap-2 py-3 rounded-xl text-xs font-black transition-all
+                  ${isActive 
+                    ? 'bg-white text-blue-600 shadow-sm border border-slate-100' 
+                    : 'text-slate-400 hover:text-slate-600'}
+                `}
+              >
+                {item.icon}
+                <span className="hidden sm:inline">{item.name}</span>
+              </Link>
+            )
+          })}
           <button
             onClick={handleLogout}
-            className="w-full flex items-center justify-center gap-2 py-3 px-4 bg-white border border-slate-200 rounded-xl text-sm font-bold text-slate-600 hover:text-rose-600 hover:border-rose-100 hover:bg-rose-50 transition-all duration-200 shadow-sm"
+            className="p-3 bg-white border border-slate-200 rounded-xl text-slate-400 hover:text-rose-600 hover:border-rose-100 hover:bg-rose-50 transition-all"
+            title="Sign Out"
           >
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
             </svg>
-            <span>Sign out</span>
           </button>
-        </div>
+        </nav>
       </aside>
 
       {/* Main Content */}
-      <main className="hidden md:flex flex-1 flex-col items-center justify-center bg-slate-50 relative">
-        <div className="max-w-md w-full text-center px-12 animate-in fade-in slide-in-from-bottom-4 duration-700">
-          <div className="w-24 h-24 bg-white rounded-3xl shadow-xl shadow-slate-200/50 flex items-center justify-center text-blue-600 mx-auto mb-8 border border-slate-50">
-            <svg className="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
-            </svg>
+      <main className={`
+        ${children ? 'flex' : 'hidden md:flex'} 
+        flex-1 bg-white md:bg-slate-50 relative overflow-hidden flex-col
+      `}>
+        {/* Mobile Header for Main View */}
+        {children && (
+          <div className="md:hidden h-16 flex items-center gap-4 px-4 border-b border-slate-100 shrink-0 bg-white">
+            <button 
+              onClick={() => navigate(isSettingsPath ? '/chat' : -1)}
+              className="p-2 -ml-2 text-slate-400 hover:text-slate-900"
+            >
+              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 19l-7-7 7-7" />
+              </svg>
+            </button>
+            <h2 className="text-lg font-bold text-slate-900 truncate">
+              {isSettingsPath ? 'Settings' : 'Conversation'}
+            </h2>
           </div>
-          <h2 className="text-3xl font-bold text-slate-900 tracking-tight">Select a conversation</h2>
-          <p className="text-slate-500 mt-4 leading-relaxed font-medium">Choose a contact from the sidebar to start a secure, real-time conversation.</p>
-          
-          <div className="mt-10 flex items-center justify-center gap-6">
-            <div className="flex flex-col items-center gap-2">
-              <div className="w-10 h-10 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center">
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.040L3 14.535a12.02 12.02 0 0013.482 3.239 12.02 12.02 0 001.346-7.482l.79-1.308z" />
+        )}
+
+        <div className="flex-1 flex flex-col relative overflow-hidden min-h-0">
+          {children ? (
+            <div className="flex-1 h-full overflow-y-auto custom-scrollbar animate-in fade-in slide-in-from-bottom-2 duration-300">
+              {children}
+            </div>
+          ) : (
+            <div className="flex-1 flex flex-col items-center justify-center p-8 text-center animate-in fade-in slide-in-from-bottom-8 duration-1000">
+              <div className="w-32 h-32 bg-white rounded-[40px] shadow-2xl shadow-blue-200/50 flex items-center justify-center text-blue-600 mx-auto mb-10 border border-blue-50 relative group">
+                <div className="absolute inset-0 bg-blue-600 rounded-[40px] opacity-0 group-hover:opacity-5 transition-opacity duration-500 scale-110"></div>
+                <svg className="w-14 h-14" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
                 </svg>
               </div>
-              <span className="text-[11px] font-bold text-slate-400 uppercase tracking-widest">End-to-end</span>
+              <h2 className="text-4xl font-black text-slate-900 tracking-tight mb-4">Start a conversation</h2>
+              <p className="text-slate-500 max-w-sm leading-relaxed font-medium text-lg">
+                Connect with your contacts to begin chatting instantly.
+              </p>
             </div>
-            <div className="flex flex-col items-center gap-2">
-              <div className="w-10 h-10 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center">
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
-                </svg>
-              </div>
-              <span className="text-[11px] font-bold text-slate-400 uppercase tracking-widest">Real-time</span>
-            </div>
-          </div>
-        </div>
-        
-        {/* Decorative corner element */}
-        <div className="absolute bottom-10 right-10 opacity-10">
-          <svg className="w-32 h-32" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <circle cx="50" cy="50" r="40" stroke="currentColor" strokeWidth="1" strokeDasharray="4 4" />
-            <circle cx="50" cy="50" r="25" stroke="currentColor" strokeWidth="1" />
-          </svg>
+          )}
         </div>
       </main>
     </div>

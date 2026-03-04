@@ -50,3 +50,31 @@ def mock_firebase_invalid():
     with patch("services.auth_service.firebase_auth.verify_id_token") as mock:
         mock.side_effect = Exception("Token invalid")
         yield mock
+
+@pytest.fixture
+def seeded_users(app):
+    """Insert two test users into the mock DB before the test."""
+    with app.app_context():
+        from utils.db import get_db
+        db = get_db()
+        db.users.insert_many([
+            {
+                "firebase_uid": "uid-alice", "email": "alice@test.com",
+                "display_name": "Alice", "avatar_url": None,
+                "status_message": "", "role": "user",
+                "is_banned": False, "last_seen": None,
+                "visibility": {"last_seen": "everyone"},
+                "created_at": None
+            },
+            {
+                "firebase_uid": "uid-bob", "email": "bob@test.com",
+                "display_name": "Bob", "avatar_url": None,
+                "status_message": "", "role": "user",
+                "is_banned": False, "last_seen": None,
+                "visibility": {"last_seen": "everyone"},
+                "created_at": None
+            }
+        ])
+        yield db
+        db.users.delete_many({})
+        db.contacts.delete_many({})

@@ -41,9 +41,9 @@ describe('Sprint 1 Auth Tests', () => {
       user: null, loading: false, isAuthenticated: false, idToken: null, signOut: vi.fn()
     })
     render(<BrowserRouter><LoginPage /></BrowserRouter>)
-    expect(screen.getByPlaceholderText(/you@example.com/i)).toBeInTheDocument()
+    expect(screen.getByPlaceholderText(/name@company.com/i)).toBeInTheDocument()
     expect(screen.getByPlaceholderText(/••••••••/i)).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: /login/i })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /log in/i })).toBeInTheDocument()
   })
 
   // FT2: LoginPage Shows error message when Firebase throws wrong-password
@@ -55,9 +55,9 @@ describe('Sprint 1 Auth Tests', () => {
     
     render(<BrowserRouter><LoginPage /></BrowserRouter>)
     
-    fireEvent.change(screen.getByPlaceholderText(/you@example.com/i), { target: { value: 'test@test.com' } })
+    fireEvent.change(screen.getByPlaceholderText(/name@company.com/i), { target: { value: 'test@test.com' } })
     fireEvent.change(screen.getByPlaceholderText(/••••••••/i), { target: { value: 'wrong' } })
-    fireEvent.click(screen.getByRole('button', { name: /login/i }))
+    fireEvent.click(screen.getByRole('button', { name: /log in/i }))
     
     await waitFor(() => {
       expect(screen.getByText(/incorrect password/i)).toBeInTheDocument()
@@ -72,13 +72,13 @@ describe('Sprint 1 Auth Tests', () => {
     // Mock a slow response
     vi.mocked(signInWithEmailAndPassword).mockReturnValue(new Promise(() => {}))
     
-    render(<BrowserRouter><LoginPage /></BrowserRouter>)
+    const { container } = render(<BrowserRouter><LoginPage /></BrowserRouter>)
     
-    fireEvent.change(screen.getByPlaceholderText(/you@example.com/i), { target: { value: 'test@test.com' } })
+    fireEvent.change(screen.getByPlaceholderText(/name@company.com/i), { target: { value: 'test@test.com' } })
     fireEvent.change(screen.getByPlaceholderText(/••••••••/i), { target: { value: 'password' } })
-    fireEvent.click(screen.getByRole('button', { name: /login/i }))
+    fireEvent.click(screen.getByRole('button', { name: /log in/i }))
     
-    expect(screen.getByText(/logging in/i)).toBeInTheDocument()
+    expect(container.querySelector('.animate-spin')).toBeInTheDocument()
     expect(screen.getByRole('button')).toBeDisabled()
   })
 
@@ -90,10 +90,10 @@ describe('Sprint 1 Auth Tests', () => {
     
     render(<BrowserRouter><RegisterPage /></BrowserRouter>)
     
-    fireEvent.change(screen.getByPlaceholderText(/you@example.com/i), { target: { value: 'test@test.com' } })
-    fireEvent.change(screen.getByPlaceholderText(/min 8 characters/i), { target: { value: 'password123' } })
-    fireEvent.change(screen.getByPlaceholderText(/repeat password/i), { target: { value: 'mismatch' } })
-    fireEvent.click(screen.getByRole('button', { name: /register/i }))
+    fireEvent.change(screen.getByPlaceholderText(/name@company.com/i), { target: { value: 'test@test.com' } })
+    fireEvent.change(screen.getByPlaceholderText(/min 8 chars/i), { target: { value: 'password123' } })
+    fireEvent.change(screen.getByPlaceholderText(/repeat/i), { target: { value: 'mismatch' } })
+    fireEvent.click(screen.getByRole('button', { name: /register now/i }))
     
     expect(screen.getByText(/passwords do not match/i)).toBeInTheDocument()
     expect(createUserWithEmailAndPassword).not.toHaveBeenCalled()
@@ -108,10 +108,10 @@ describe('Sprint 1 Auth Tests', () => {
     
     render(<BrowserRouter><RegisterPage /></BrowserRouter>)
     
-    fireEvent.change(screen.getByPlaceholderText(/you@example.com/i), { target: { value: 'test@test.com' } })
-    fireEvent.change(screen.getByPlaceholderText(/min 8 characters/i), { target: { value: 'password123' } })
-    fireEvent.change(screen.getByPlaceholderText(/repeat password/i), { target: { value: 'password123' } })
-    fireEvent.click(screen.getByRole('button', { name: /register/i }))
+    fireEvent.change(screen.getByPlaceholderText(/name@company.com/i), { target: { value: 'test@test.com' } })
+    fireEvent.change(screen.getByPlaceholderText(/min 8 chars/i), { target: { value: 'password123' } })
+    fireEvent.change(screen.getByPlaceholderText(/repeat/i), { target: { value: 'password123' } })
+    fireEvent.click(screen.getByRole('button', { name: /register now/i }))
     
     await waitFor(() => {
       expect(screen.getByText(/account with this email already exists/i)).toBeInTheDocument()
