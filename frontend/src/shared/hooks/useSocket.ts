@@ -1,13 +1,11 @@
 import { useEffect } from 'react'
 import { io, Socket } from 'socket.io-client'
 import { useAuthStore } from '../../features/auth/authStore'
-import { useContactsStore } from '../../features/contacts/contactsStore'
 
 let socketInstance: Socket | null = null
 
 export function useSocket() {
   const { idToken, user } = useAuthStore()
-  const { setUserOnline } = useContactsStore()
 
   useEffect(() => {
     if (!idToken || !user) {
@@ -27,27 +25,18 @@ export function useSocket() {
         reconnectionAttempts: 5,
         reconnectionDelay: 1000,
       })
-    } else {
-      // If token changed, we might need to reconnect with new auth
-      // For now, let's just update the auth object if possible, 
-      // or disconnect/reconnect if needed.
-      // socketInstance.auth = { token: idToken };
+      
+      socketInstance.on('connect_error', (err) => {
+        console.error('[Socket] Connection error:', err.message)
+      })
     }
-
-    // Presence events
-    socketInstance.on('user:online', (data: { user_id: string; is_online: boolean }) => {
-      setUserOnline(data.user_id, data.is_online)
-    })
-
-    socketInstance.on('connect_error', (err) => {
-      console.error('[Socket] Connection error:', err.message)
-    })
 
     return () => {
-      socketInstance?.off('user:online')
-      socketInstance?.off('connect_error')
+      // Do not disconnect on unmount of hook, only on auth change
+      // or explicit disconnect. 
+      // We rely on singleton pattern.
     }
-  }, [idToken, user, setUserOnline])
+  }, [idToken, user])
 
   return socketInstance
 }

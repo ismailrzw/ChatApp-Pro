@@ -4,7 +4,7 @@ import { useAuthStore } from '../auth/authStore'
 import { getMe, updateMe, uploadAvatar } from '../../shared/api/usersApi'
 import Avatar from '../../shared/components/Avatar'
 import { useToast } from '../../shared/components/Toast'
-import ChatLayout from '../chat/ChatLayout'
+import BaseLayout from '../../shared/components/BaseLayout'
 
 export default function ProfileSettings() {
   const { user, setUser } = useAuthStore()
@@ -97,16 +97,16 @@ export default function ProfileSettings() {
 
   if (loading) {
     return (
-      <ChatLayout>
+      <BaseLayout>
         <div className="h-full flex items-center justify-center bg-white">
           <div className="animate-spin h-8 w-8 border-4 border-blue-600 border-t-transparent rounded-full"></div>
         </div>
-      </ChatLayout>
+      </BaseLayout>
     )
   }
 
   return (
-    <ChatLayout>
+    <BaseLayout>
       <div className="max-w-3xl mx-auto py-8 md:py-12 px-4 md:px-8">
         <div className="mb-10">
           <h1 className="text-3xl font-black text-slate-900 tracking-tight">Account Settings</h1>
@@ -242,6 +242,6 @@ export default function ProfileSettings() {
         </div>
       </div>
       <ToastContainer />
-    </ChatLayout>
+    </BaseLayout>
   )
 }

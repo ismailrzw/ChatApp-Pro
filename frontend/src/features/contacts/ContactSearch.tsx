@@ -4,6 +4,7 @@ import { sendContactRequest } from '../../shared/api/contactsApi'
 import type { UserSearchResult } from '../../types/user'
 import Avatar from '../../shared/components/Avatar'
 import { useToast } from '../../shared/components/Toast'
+import { useContactsStore } from './contactsStore'
 
 export default function ContactSearch() {
   const [query, setQuery] = useState('')
@@ -12,6 +13,9 @@ export default function ContactSearch() {
   const [requesting, setRequesting] = useState<Record<string, boolean>>({})
   const [requested, setRequested] = useState<Record<string, boolean>>({})
   const { showToast, ToastContainer } = useToast()
+  
+  // Get contacts to check existing status
+  const contacts = useContactsStore((state) => state.contacts)
 
   const handleSearch = useCallback(async (q: string) => {
     if (q.length < 2) {
@@ -54,6 +58,19 @@ export default function ContactSearch() {
     }
   }
 
+  const getButtonState = (uid: string) => {
+    const contact = contacts.find(c => c.other_user?.firebase_uid === uid)
+    if (contact) {
+      if (contact.status === 'accepted') return { label: 'Connected', disabled: true, style: 'bg-slate-100 text-slate-500 cursor-default border border-slate-200' }
+      if (contact.status === 'pending') return { label: 'Pending', disabled: true, style: 'bg-emerald-50 text-emerald-600 cursor-default border border-emerald-100' }
+      if (contact.status === 'blocked') return { label: 'Blocked', disabled: true, style: 'bg-rose-50 text-rose-500 cursor-default border border-rose-100' }
+    }
+    
+    if (requested[uid]) return { label: 'Pending ✓', disabled: true, style: 'bg-emerald-50 text-emerald-600 cursor-default border border-emerald-100' }
+    
+    return { label: 'Connect', disabled: false, style: 'bg-slate-900 text-white hover:bg-blue-600 shadow-lg shadow-slate-200 hover:shadow-blue-100' }
+  }
+
   return (
     <div className="space-y-8 py-2 px-1">
       <div className="relative group">
@@ -78,35 +95,32 @@ export default function ContactSearch() {
 
       <div className="space-y-3 max-h-[380px] overflow-y-auto pr-2 custom-scrollbar min-h-[100px]">
         {results.length > 0 ? (
-          results.map((user) => (
-            <div key={user.firebase_uid} className="flex items-center justify-between p-4 hover:bg-slate-50 rounded-2xl transition-all border border-transparent hover:border-slate-100 group">
-              <div className="flex items-center gap-4 min-w-0">
-                <Avatar src={user.avatar_url} name={user.display_name} size="md" className="ring-2 ring-transparent group-hover:ring-white transition-all" />
-                <div className="min-w-0">
-                  <h4 className="font-black text-slate-900 truncate text-sm">{user.display_name}</h4>
-                  <p className="text-[11px] text-slate-400 truncate font-bold uppercase tracking-wider">{user.email}</p>
+          results.map((user) => {
+            const btnState = getButtonState(user.firebase_uid)
+            return (
+              <div key={user.firebase_uid} className="flex items-center justify-between p-4 hover:bg-slate-50 rounded-2xl transition-all border border-transparent hover:border-slate-100 group">
+                <div className="flex items-center gap-4 min-w-0">
+                  <Avatar src={user.avatar_url} name={user.display_name} size="md" className="ring-2 ring-transparent group-hover:ring-white transition-all" />
+                  <div className="min-w-0">
+                    <h4 className="font-black text-slate-900 truncate text-sm">{user.display_name}</h4>
+                    <p className="text-[11px] text-slate-400 truncate font-bold uppercase tracking-wider">{user.email}</p>
+                  </div>
                 </div>
+                
+                <button
+                  onClick={() => handleAddContact(user.firebase_uid)}
+                  disabled={requesting[user.firebase_uid] || btnState.disabled}
+                  className={`px-5 py-2.5 rounded-xl font-black text-xs transition-all active:scale-95 ${btnState.style}`}
+                >
+                  {requesting[user.firebase_uid] ? (
+                    <div className="animate-spin h-4 w-4 border-2 border-current border-t-transparent rounded-full"></div>
+                  ) : (
+                    btnState.label
+                  )}
+                </button>
               </div>
-              
-              <button
-                onClick={() => handleAddContact(user.firebase_uid)}
-                disabled={requesting[user.firebase_uid] || requested[user.firebase_uid]}
-                className={`px-5 py-2.5 rounded-xl font-black text-xs transition-all active:scale-95 ${
-                  requested[user.firebase_uid]
-                    ? 'bg-emerald-50 text-emerald-600 cursor-default border border-emerald-100'
-                    : 'bg-slate-900 text-white hover:bg-blue-600 shadow-lg shadow-slate-200 hover:shadow-blue-100'
-                }`}
-              >
-                {requesting[user.firebase_uid] ? (
-                  <div className="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full"></div>
-                ) : requested[user.firebase_uid] ? (
-                  'Pending ✓'
-                ) : (
-                  'Connect'
-                )}
-              </button>
-            </div>
-          ))
+            )
+          })
         ) : query.length >= 2 && !loading ? (
           <div className="text-center py-12 animate-in fade-in zoom-in duration-300">
             <div className="w-16 h-16 bg-slate-50 rounded-2xl flex items-center justify-center mx-auto mb-4 border border-slate-100">

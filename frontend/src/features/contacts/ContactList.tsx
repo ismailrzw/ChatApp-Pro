@@ -1,12 +1,13 @@
 import React, { useEffect, useState } from 'react'
 import { getContacts, updateContact, deleteContact } from '../../shared/api/contactsApi'
 import { useContactsStore } from './contactsStore'
-import { useSocket } from '../../shared/hooks/useSocket'
 import ContactCard from './ContactCard'
 import ContactSearch from './ContactSearch'
 import Modal from '../../shared/components/Modal'
 import { useToast } from '../../shared/components/Toast'
 import Avatar from '../../shared/components/Avatar'
+import BaseLayout from '../../shared/components/BaseLayout'
+import { getSocket } from '../../shared/hooks/useSocket'
 
 interface ContactListProps {
   isSidebarMode?: boolean
@@ -23,7 +24,6 @@ export default function ContactList({ isSidebarMode = false }: ContactListProps)
   const [incomingRequests, setIncomingRequests] = useState<any[]>([])
   
   const { showToast, ToastContainer } = useToast()
-  const socket = useSocket()
 
   useEffect(() => {
     async function loadContacts() {
@@ -42,6 +42,7 @@ export default function ContactList({ isSidebarMode = false }: ContactListProps)
   }, [setContacts, setLoading, setError, showToast])
 
   useEffect(() => {
+    const socket = getSocket()
     if (!socket) return
 
     const handleIncomingRequest = (data: any) => {
@@ -53,7 +54,7 @@ export default function ContactList({ isSidebarMode = false }: ContactListProps)
     return () => {
       socket.off('user:contact_request', handleIncomingRequest)
     }
-  }, [socket, showToast])
+  }, [showToast])
 
   const handleBlock = async () => {
     try {
@@ -92,7 +93,7 @@ export default function ContactList({ isSidebarMode = false }: ContactListProps)
     a.other_user!.display_name.localeCompare(b.other_user!.display_name)
   )
 
-  return (
+  const content = (
     <div className="flex flex-col h-full bg-white relative min-h-0">
       {/* Header - Compact for Sidebar */}
       <div className={`
@@ -193,7 +194,7 @@ export default function ContactList({ isSidebarMode = false }: ContactListProps)
           </div>
         ) : (
           <div className="py-20 flex flex-col items-center justify-center px-6 text-center">
-            <div className="w-16 h-16 bg-slate-50 rounded-3xl flex items-center justify-center mb-6 border border-slate-100">
+            <div className="w-16 h-16 bg-slate-50 rounded-[32px] flex items-center justify-center mb-6 border border-slate-100">
               <svg className="w-8 h-8 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
               </svg>
@@ -245,5 +246,15 @@ export default function ContactList({ isSidebarMode = false }: ContactListProps)
 
       <ToastContainer />
     </div>
+  )
+
+  if (isSidebarMode) {
+    return content
+  }
+
+  return (
+    <BaseLayout>
+      {content}
+    </BaseLayout>
   )
 }

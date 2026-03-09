@@ -13,11 +13,16 @@ export function useAuth() {
         try {
           const token = await firebaseUser.getIdToken()
           setIdToken(token)
-          setUser(firebaseUser)
-          // Call backend to upsert profile
-          await postVerifyToken(token)
+          // Initially set firebase user to avoid UI flash
+          // setUser(firebaseUser) 
+          
+          // Call backend to upsert profile and get full UserProfile
+          const userProfile = await postVerifyToken(token)
+          setUser(userProfile)
         } catch (error) {
           console.error('Error during auth state change:', error)
+          // Fallback to firebase user if backend fails? 
+          // For now, let's stick to happy path or keep it null/error
         }
       } else {
         reset()

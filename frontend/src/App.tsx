@@ -4,6 +4,7 @@ import RegisterPage from './features/auth/RegisterPage'
 import ResetPasswordPage from './features/auth/ResetPasswordPage'
 import ChatLayout from './features/chat/ChatLayout'
 import ProfileSettings from './features/profile/ProfileSettings'
+import ContactList from './features/contacts/ContactList'
 import { ProtectedRoute } from './shared/components/ProtectedRoute'
 
 function App() {
@@ -16,7 +17,6 @@ function App() {
         <Route path="/reset-password" element={<ResetPasswordPage />} />
 
         {/* Protected Routes */}
-        {/* /chat and /contacts will use the Sidebar-driven navigation within ChatLayout */}
         <Route path="/chat" element={
           <ProtectedRoute>
             <ChatLayout />
@@ -38,8 +38,8 @@ function App() {
 
         <Route path="/contacts" element={
           <ProtectedRoute>
-            {/* Now singular: sidebar handles the list, main area stays empty/placeholder */}
-            <ChatLayout />
+            {/* ContactList now handles its own BaseLayout or Sidebar mode */}
+            <ContactList />
           </ProtectedRoute>
         } />
 

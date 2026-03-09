@@ -1,11 +1,11 @@
 import { create } from 'zustand'
-import type { User } from 'firebase/auth'
+import type { UserProfile } from '../../types/user'
 
 interface AuthState {
-  user: User | null
+  user: UserProfile | null
   loading: boolean
   idToken: string | null
-  setUser: (user: User | null) => void
+  setUser: (user: UserProfile | null) => void
   setLoading: (loading: boolean) => void
   setIdToken: (token: string | null) => void
   reset: () => void
