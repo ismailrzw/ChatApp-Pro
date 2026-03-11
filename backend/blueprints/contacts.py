@@ -13,14 +13,14 @@ def get_contacts():
     uid = get_current_uid()
     db = get_db()
     
-    # Find all accepted contacts where user is requester OR addressee
+    # Find all relationships where user is requester OR addressee
+    # We return everything (accepted, pending, blocked) and let the frontend filter
     contacts = list(db.contacts.find(
         {
             "$or": [
                 {"requester_uid": uid},
                 {"addressee_uid": uid}
-            ],
-            "status": "accepted"
+            ]
         }
     ))
     
@@ -37,7 +37,11 @@ def get_contacts():
             enriched_contacts.append({
                 "contact_id": str(contact['_id']),
                 "status": contact['status'],
-                "other_user": other_user
+                "requester_uid": contact['requester_uid'],
+                "addressee_uid": contact['addressee_uid'],
+                "other_user": other_user,
+                "created_at": contact.get('created_at').isoformat() if isinstance(contact.get('created_at'), datetime) else contact.get('created_at'),
+                "updated_at": contact.get('updated_at').isoformat() if isinstance(contact.get('updated_at'), datetime) else contact.get('updated_at')
             })
             
     return jsonify(enriched_contacts), 200

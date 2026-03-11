@@ -4,6 +4,7 @@ import { useAuth } from '../hooks/useAuth'
 import { useSocket } from '../hooks/useSocket'
 import Avatar from './Avatar'
 import { useContactsStore } from '../../features/contacts/contactsStore'
+import { useToast } from './Toast'
 
 interface BaseLayoutProps {
   children?: React.ReactNode
@@ -12,9 +13,10 @@ interface BaseLayoutProps {
 
 export default function BaseLayout({ children, sidebarContent }: BaseLayoutProps) {
   const { user, signOut } = useAuth()
-  const { setUserOnline } = useContactsStore()
+  const { setUserOnline, addIncomingRequest } = useContactsStore()
   const navigate = useNavigate()
   const location = useLocation()
+  const { showToast, ToastContainer } = useToast()
   
   const socket = useSocket()
 
@@ -25,12 +27,22 @@ export default function BaseLayout({ children, sidebarContent }: BaseLayoutProps
       setUserOnline(data.user_id, data.is_online)
     }
 
+    const handleIncomingRequest = (data: any) => {
+      addIncomingRequest(data)
+      // Only show toast if not already on contacts page (where it's visible anyway)
+      if (!location.pathname.includes('/contacts')) {
+        showToast(`New contact request from ${data.from_user.display_name}`, 'info')
+      }
+    }
+
     socket.on('user:online', handlePresence)
+    socket.on('user:contact_request', handleIncomingRequest)
 
     return () => {
       socket.off('user:online', handlePresence)
+      socket.off('user:contact_request', handleIncomingRequest)
     }
-  }, [socket, setUserOnline])
+  }, [socket, setUserOnline, addIncomingRequest, location.pathname, showToast])
 
   const handleLogout = async () => {
     await signOut()
@@ -186,6 +198,7 @@ export default function BaseLayout({ children, sidebarContent }: BaseLayoutProps
           )}
         </div>
       </main>
+      <ToastContainer />
     </div>
   )
 }
