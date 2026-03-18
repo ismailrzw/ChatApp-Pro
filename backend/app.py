@@ -1,55 +1,48 @@
-from flask import Flask, jsonify
+import eventlet
+eventlet.monkey_patch()
+
+from flask import Flask
 from flask_cors import CORS
-from datetime import datetime
-import os
-
-from config import config
+from config import DevelopmentConfig
 from extensions import socketio
-from blueprints.auth import auth_bp
-from blueprints.users import users_bp
-from blueprints.contacts import contacts_bp
-from blueprints.conversations import conversations_bp
-from blueprints.messages import messages_bp
-from blueprints.media import media_bp
-from blueprints.admin import admin_bp
-from sockets.events import register_socket_events
 
-def create_app(config_name='development'):
+
+def create_app(config_class=DevelopmentConfig):
     app = Flask(__name__)
-    app.config.from_object(config[config_name])
-    
-    # Initialize CORS
-    CORS(app, resources={r"/api/*": {"origins": app.config['ALLOWED_ORIGINS']}})
-    
-    # Initialize SocketIO
+    app.config.from_object(config_class)
+
+    CORS(app, resources={r"/api/*": {"origins": "*"}}, supports_credentials=True)
+
     socketio.init_app(
-        app, 
-        cors_allowed_origins=app.config['ALLOWED_ORIGINS'],
-        async_mode="threading" # As per B7 spec
+        app,
+        cors_allowed_origins="*",
+        async_mode="eventlet",
+        logger=False,
+        engineio_logger=False,
     )
-    
-    # Register Socket Events
-    register_socket_events(socketio)
-    
-    # Register Health Route
-    @app.route('/api/health')
-    def health_check():
-        return jsonify({
-            "status": "ok",
-            "timestamp": datetime.utcnow().isoformat() + "Z"
-        }), 200
-    
-    # Register Blueprints
+
+    from blueprints.auth import auth_bp
+    from blueprints.users import users_bp
+    from blueprints.contacts import contacts_bp
+    from blueprints.conversations import conversations_bp
     app.register_blueprint(auth_bp)
     app.register_blueprint(users_bp)
     app.register_blueprint(contacts_bp)
     app.register_blueprint(conversations_bp)
-    app.register_blueprint(messages_bp)
-    app.register_blueprint(media_bp)
-    app.register_blueprint(admin_bp)
-    
+
+    from sockets import events  # noqa: F401
+
+    # DO NOT register teardown_appcontext to call close_db.
+    # Closing MongoClient after every request causes
+    # "Cannot use MongoClient after close" errors with eventlet.
+
+    @app.route("/api/health")
+    def health():
+        return {"status": "ok"}, 200
+
     return app
 
-if __name__ == '__main__':
-    app = create_app(os.getenv('FLASK_ENV', 'development'))
-    socketio.run(app, host='0.0.0.0', port=5000, debug=app.config['DEBUG'])
+
+if __name__ == "__main__":
+    app = create_app()
+    socketio.run(app, host="0.0.0.0", port=5000, debug=True)

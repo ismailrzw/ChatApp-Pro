@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { searchUsers } from '../../shared/api/usersApi'
 import { sendContactRequest } from '../../shared/api/contactsApi'
 import type { UserSearchResult } from '../../types/user'
@@ -9,8 +9,8 @@ import { useContactsStore } from './contactsStore'
  * ContactSearch
  * - Debounced user search (300ms)
  * - Per-result Add button state machine
- * - No internal ToastContainer — parent ContactList owns the single toast renderer
- * - showToast is accepted as a prop to avoid unstable hook reference in deps
+ * - No internal ToastContainer — parent ContactList owns the single renderer
+ * - showToast accepted as prop to avoid unstable hook reference in deps
  */
 
 interface ContactSearchProps {
@@ -24,20 +24,15 @@ export default function ContactSearch({ showToast }: ContactSearchProps) {
   const [requesting, setRequesting] = useState<Record<string, boolean>>({})
   const [requested, setRequested] = useState<Record<string, boolean>>({})
 
-  // Stable ref for showToast — never triggers effect re-runs
+  // Stable ref so handleSearch never needs showToast in its dep array
   const showToastRef = useRef(showToast)
   useEffect(() => {
     showToastRef.current = showToast
   }, [showToast])
 
-  // Read contacts from store to derive button state
   const contacts = useContactsStore((state) => state.contacts)
 
-  /**
-   * handleSearch is stable — empty dep array.
-   * Uses showToastRef.current so it always has the latest toast fn
-   * without causing the useCallback to rebuild on every render.
-   */
+  // handleSearch is stable — empty dep array.
   const handleSearch = useCallback(async (q: string) => {
     if (q.length < 2) {
       setResults([])
@@ -54,7 +49,7 @@ export default function ContactSearch({ showToast }: ContactSearchProps) {
     }
   }, []) // intentionally empty — showToast accessed via ref
 
-  // Debounce: fires 300ms after user stops typing
+  // Debounce 300ms
   useEffect(() => {
     const timer = setTimeout(() => {
       handleSearch(query)
@@ -73,38 +68,54 @@ export default function ContactSearch({ showToast }: ContactSearchProps) {
         setRequested((prev) => ({ ...prev, [uid]: true }))
         showToastRef.current('Already connected or pending', 'info')
       } else {
-        showToastRef.current(err.response?.data?.error || 'Failed to send request', 'error')
+        showToastRef.current(
+          err.response?.data?.error || 'Failed to send request',
+          'error'
+        )
       }
     } finally {
       setRequesting((prev) => ({ ...prev, [uid]: false }))
     }
   }
 
-  /**
-   * Button state machine per search result:
-   * accepted  → "Connected"  (grey, disabled)
-   * pending   → "Pending ✓"  (green, disabled)
-   * blocked   → "Blocked"    (red, disabled)
-   * requested → "Pending ✓"  (green, disabled — local state after send)
-   * default   → "Connect"    (dark, active)
-   */
   const getButtonState = (uid: string) => {
     const contact = contacts.find((c) => c.other_user?.firebase_uid === uid)
     if (contact) {
       if (contact.status === 'accepted')
-        return { label: 'Connected', disabled: true, style: 'bg-slate-100 text-slate-500 cursor-default border border-slate-200' }
+        return {
+          label: 'Connected',
+          disabled: true,
+          style:
+            'bg-slate-100 text-slate-500 cursor-default border border-slate-200',
+        }
       if (contact.status === 'pending')
-        return { label: 'Pending', disabled: true, style: 'bg-emerald-50 text-emerald-600 cursor-default border border-emerald-100' }
+        return {
+          label: 'Pending',
+          disabled: true,
+          style:
+            'bg-emerald-50 text-emerald-600 cursor-default border border-emerald-100',
+        }
       if (contact.status === 'blocked')
-        return { label: 'Blocked', disabled: true, style: 'bg-rose-50 text-rose-500 cursor-default border border-rose-100' }
+        return {
+          label: 'Blocked',
+          disabled: true,
+          style:
+            'bg-rose-50 text-rose-500 cursor-default border border-rose-100',
+        }
     }
     if (requested[uid])
-      return { label: 'Pending ✓', disabled: true, style: 'bg-emerald-50 text-emerald-600 cursor-default border border-emerald-100' }
+      return {
+        label: 'Pending ✓',
+        disabled: true,
+        style:
+          'bg-emerald-50 text-emerald-600 cursor-default border border-emerald-100',
+      }
 
     return {
       label: 'Connect',
       disabled: false,
-      style: 'bg-slate-900 text-white hover:bg-blue-600 shadow-lg shadow-slate-200 hover:shadow-blue-100',
+      style:
+        'bg-slate-900 text-white hover:bg-blue-600 shadow-lg shadow-slate-200 hover:shadow-blue-100',
     }
   }
 
@@ -113,9 +124,18 @@ export default function ContactSearch({ showToast }: ContactSearchProps) {
       {/* Search Input */}
       <div className="relative group">
         <div className="absolute inset-y-0 left-0 pl-5 flex items-center pointer-events-none text-slate-400 group-focus-within:text-blue-500 transition-colors">
-          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5"
-              d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+          <svg
+            className="w-5 h-5"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth="2.5"
+              d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+            />
           </svg>
         </div>
         <input
@@ -150,8 +170,12 @@ export default function ContactSearch({ showToast }: ContactSearchProps) {
                     className="ring-2 ring-transparent group-hover:ring-white transition-all"
                   />
                   <div className="min-w-0">
-                    <h4 className="font-black text-slate-900 truncate text-sm">{user.display_name}</h4>
-                    <p className="text-[11px] text-slate-400 truncate font-bold uppercase tracking-wider">{user.email}</p>
+                    <h4 className="font-black text-slate-900 truncate text-sm">
+                      {user.display_name}
+                    </h4>
+                    <p className="text-[11px] text-slate-400 truncate font-bold uppercase tracking-wider">
+                      {user.email}
+                    </p>
                   </div>
                 </div>
 
@@ -170,27 +194,40 @@ export default function ContactSearch({ showToast }: ContactSearchProps) {
             )
           })
         ) : query.length >= 2 && !loading ? (
-          <div className="text-center py-12 animate-in fade-in zoom-in duration-300">
+          <div className="text-center py-12">
             <div className="w-16 h-16 bg-slate-50 rounded-2xl flex items-center justify-center mx-auto mb-4 border border-slate-100">
-              <svg className="w-8 h-8 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2"
-                  d="M9.172 9.172a4 4 0 0112.728 0M5.636 5.636a9 9 0 0114.142 0M12 14a2 2 0 110-4 2 2 0 010 4z" />
+              <svg
+                className="w-8 h-8 text-slate-300"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth="2"
+                  d="M9.172 9.172a4 4 0 0112.728 0M5.636 5.636a9 9 0 0114.142 0M12 14a2 2 0 110-4 2 2 0 010 4z"
+                />
               </svg>
             </div>
-            <p className="text-slate-400 font-bold text-sm italic">No users found for "{query}"</p>
+            <p className="text-slate-400 font-bold text-sm italic">
+              No users found for "{query}"
+            </p>
           </div>
         ) : query.length > 0 && query.length < 2 ? (
           <div className="text-center py-12">
-            <p className="text-slate-300 text-[10px] font-black uppercase tracking-[0.2em]">Type 2+ characters</p>
+            <p className="text-slate-300 text-[10px] font-black uppercase tracking-[0.2em]">
+              Type 2+ characters
+            </p>
           </div>
         ) : !loading ? (
           <div className="text-center py-12">
-            <p className="text-slate-300 text-[10px] font-black uppercase tracking-[0.2em] italic">Ready to search</p>
+            <p className="text-slate-300 text-[10px] font-black uppercase tracking-[0.2em] italic">
+              Ready to search
+            </p>
           </div>
         ) : null}
       </div>
-
-      {/* No ToastContainer here — ContactList owns the single instance */}
     </div>
   )
 }

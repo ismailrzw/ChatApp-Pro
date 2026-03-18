@@ -3,20 +3,25 @@ import type { UserProfile } from '../../types/user'
 
 interface AuthState {
   user: UserProfile | null
-  loading: boolean
   idToken: string | null
+  loading: boolean
+
   setUser: (user: UserProfile | null) => void
-  setLoading: (loading: boolean) => void
   setIdToken: (token: string | null) => void
+  setLoading: (loading: boolean) => void
   reset: () => void
 }
 
 export const useAuthStore = create<AuthState>((set) => ({
   user: null,
-  loading: true,
   idToken: null,
+  loading: true,
+
   setUser: (user) => set({ user }),
+  setIdToken: (idToken) => set({ idToken }),
   setLoading: (loading) => set({ loading }),
-  setIdToken: (token) => set({ idToken: token }),
-  reset: () => set({ user: null, loading: false, idToken: null }),
+
+  // reset() MUST set loading: false — never true.
+  // If this sets loading: true, the app spins forever when logged out.
+  reset: () => set({ user: null, idToken: null, loading: false }),
 }))

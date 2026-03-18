@@ -5,39 +5,45 @@ import { useAuthStore } from '../../features/auth/authStore'
 import { postVerifyToken } from '../api/authApi'
 
 export function useAuth() {
-  const { user, loading, idToken, setUser, setLoading, setIdToken, reset } = useAuthStore()
+  const user = useAuthStore((s) => s.user)
+  const loading = useAuthStore((s) => s.loading)
+  const idToken = useAuthStore((s) => s.idToken)
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
-      if (firebaseUser) {
-        try {
+      try {
+        if (firebaseUser) {
           const token = await firebaseUser.getIdToken()
-          setIdToken(token)
-          // Initially set firebase user to avoid UI flash
-          // setUser(firebaseUser) 
-          
-          // Call backend to upsert profile and get full UserProfile
+          useAuthStore.getState().setIdToken(token)
           const userProfile = await postVerifyToken(token)
-          setUser(userProfile)
-        } catch (error) {
-          console.error('Error during auth state change:', error)
-          // Fallback to firebase user if backend fails? 
-          // For now, let's stick to happy path or keep it null/error
+          useAuthStore.getState().setUser(userProfile)
+        } else {
+          // Not logged in — clear state
+          useAuthStore.getState().setUser(null)
+          useAuthStore.getState().setIdToken(null)
         }
-      } else {
-        reset()
+      } catch (err) {
+        console.error('[useAuth] Error:', err)
+        useAuthStore.getState().setUser(null)
+        useAuthStore.getState().setIdToken(null)
+      } finally {
+        // Runs unconditionally — loading will always resolve
+        useAuthStore.getState().setLoading(false)
       }
-      setLoading(false)
     })
-    return unsubscribe // cleanup on unmount
-  }, [setUser, setLoading, setIdToken, reset])
+
+    return unsubscribe
+  }, [])
 
   const signOut = async () => {
     try {
       await firebaseSignOut(auth)
-      reset()
-    } catch (error) {
-      console.error('Error during sign out:', error)
+    } catch (err) {
+      console.error('[useAuth] Sign out error:', err)
+    } finally {
+      useAuthStore.getState().setUser(null)
+      useAuthStore.getState().setIdToken(null)
+      useAuthStore.getState().setLoading(false)
     }
   }
 

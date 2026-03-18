@@ -2,29 +2,34 @@ import axios from 'axios'
 import { auth } from '../firebase'
 
 const axiosInstance = axios.create({
-  baseURL: import.meta.env.VITE_API_URL,
+  baseURL: import.meta.env.VITE_API_URL ?? 'http://localhost:5000',
   timeout: 10000,
-  headers: { 'Content-Type': 'application/json' },
 })
 
-// Request interceptor: attach fresh Firebase token
+// Attach a fresh Firebase ID token to every request
 axiosInstance.interceptors.request.use(async (config) => {
-  const user = auth.currentUser
-  if (user) {
-    const token = await user.getIdToken(/* forceRefresh */ false)
-    config.headers.Authorization = `Bearer ${token}`
+  try {
+    const currentUser = auth.currentUser
+    if (currentUser) {
+      const token = await currentUser.getIdToken()
+      config.headers.Authorization = `Bearer ${token}`
+    }
+  } catch (err) {
+    console.error('[axiosInstance] Failed to get token:', err)
   }
   return config
 })
 
-// Response interceptor: handle 401 globally
+// Log response errors for easier debugging
 axiosInstance.interceptors.response.use(
   (response) => response,
-  async (error) => {
-    if (error.response?.status === 401) {
-      // Token may be expired — Firebase SDK will refresh on next getIdToken call
-      // Re-throw so individual call sites can handle UI feedback
-    }
+  (error) => {
+    console.error(
+      '[axiosInstance] Request failed:',
+      error.config?.url,
+      error.response?.status,
+      error.response?.data
+    )
     return Promise.reject(error)
   }
 )
